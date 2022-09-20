@@ -91,6 +91,7 @@ android {
 }
 
 dependencies {
+    implementation files('libs/autocompletion-1.0-SNAPSHOT-jar-with-dependencies.jar')
     implementation project(':api')
     implementation project(':addons:base')
     implementation project(':addons:languages:english:pack')
@@ -128,6 +129,8 @@ dependencies {
     implementation 'androidx.navigation:navigation-dynamic-features-fragment:2.5.2'
 
     implementation 'androidx.multidex:multidex:2.0.1'
+
+    //implementation files('libs/autocompletion-1.0-SNAPSHOT-jar-with-dependencies.jar')
 
     testImplementation project(path: ':ime:base-test')
     testImplementation 'com.github.triplet.simpleprovider:simpleprovider:1.1.0'
