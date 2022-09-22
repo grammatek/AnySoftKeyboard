@@ -5,3 +5,11 @@ ext.dictionaryInputAdditionalInnerCharacters = null//"".toCharArray()
 ext.shouldGenerateDictionary = true
 
 apply from: "$rootDir/addons/gradle/language_pack_lib.gradle"
+
+dependencies {
+    implementation 'org.apache.lucene:lucene-core:8.11.2'
+    implementation 'org.apache.lucene:lucene-analyzers-common:8.11.2'
+    implementation 'org.apache.lucene:lucene-queryparser:8.11.2'
+    implementation 'org.apache.lucene:lucene-suggest:8.11.2'
+    implementation 'androidx.annotation:annotation:1.4.0'
+}

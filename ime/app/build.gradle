@@ -91,7 +91,6 @@ android {
 }
 
 dependencies {
-    implementation files('libs/autocompletion-1.0-SNAPSHOT-jar-with-dependencies.jar')
     implementation project(':api')
     implementation project(':addons:base')
     implementation project(':addons:languages:english:pack')

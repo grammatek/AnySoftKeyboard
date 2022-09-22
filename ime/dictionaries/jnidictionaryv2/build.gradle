@@ -15,4 +15,5 @@ dependencies {
     implementation project(':ime:dictionaries')
     implementation project(':ime:base')
     implementation 'androidx.annotation:annotation:1.4.0'
+    implementation project(path: ':addons:languages:icelandic:pack')
 }
