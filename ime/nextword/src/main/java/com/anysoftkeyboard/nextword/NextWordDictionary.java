@@ -26,6 +26,10 @@ public class NextWordDictionary implements NextWordSuggestions {
     private final String[] mReusableNextWordsResponse = new String[MAX_NEXT_SUGGESTIONS];
     private final SimpleIterable mReusableNextWordsIterable;
 
+    public NextWordDictionary() {
+        mStorage = null;
+        mReusableNextWordsIterable = null;
+    }
     public NextWordDictionary(Context context, String locale) {
         mStorage = new NextWordsStorage(context, locale);
         mReusableNextWordsIterable = new SimpleIterable(mReusableNextWordsResponse);

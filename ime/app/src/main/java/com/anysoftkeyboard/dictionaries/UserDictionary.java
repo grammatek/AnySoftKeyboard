@@ -22,6 +22,7 @@ import com.anysoftkeyboard.base.utils.Logger;
 import com.anysoftkeyboard.dictionaries.content.AndroidUserDictionary;
 import com.anysoftkeyboard.dictionaries.sqlite.FallbackUserDictionary;
 import com.anysoftkeyboard.nextword.NextWordDictionary;
+import com.anysoftkeyboard.nextword.NextWordDictionaryICE;
 import com.anysoftkeyboard.nextword.NextWordSuggestions;
 import com.menny.android.anysoftkeyboard.AnyApplication;
 import com.menny.android.anysoftkeyboard.R;
@@ -39,7 +40,10 @@ public class UserDictionary extends EditableDictionary {
         mLocale = locale;
         mContext = context;
 
-        mNextWordDictionary = new NextWordDictionary(mContext, mLocale);
+        if (mLocale.equals("is"))
+            mNextWordDictionary = new NextWordDictionaryICE(mContext, mLocale);
+        else
+            mNextWordDictionary = new NextWordDictionary(mContext, mLocale);
     }
 
     @Override
