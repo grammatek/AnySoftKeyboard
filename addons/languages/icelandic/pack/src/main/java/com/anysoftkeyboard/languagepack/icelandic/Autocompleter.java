@@ -54,19 +54,20 @@ public class Autocompleter {
     /**
      * Provide autocompletion suggestions for 'input', no more than 'maxNum' suggestions.
      * The suggestions from the FST can consist of one or two words (as one string), we
-     * preform some comparisons to the input to return the correct word.
+     * perform some comparisons to the input to return the correct word.
      * If the input ends with a space, we are doing next word prediction and return the
      * second word from each suggestion. For other inputs we compare the suggestions and make
      * sure we return the word starting with the input.
+     *
      * @param input the string to complete
      * @param maxNum max number of suggestion to return
      * @return an ordered map, with the most likely suggestion as the first item
      */
     public Map<String, Integer> autocomplete(String input, int maxNum) {
         Map<String, Integer> results = new LinkedHashMap<>();
-        List<FSTCompletion.Completion> suggestions = completion.lookup(input, maxNum);
+        final List<FSTCompletion.Completion> suggestions = completion.lookup(input, maxNum);
         for (FSTCompletion.Completion compl : suggestions) {
-            String suggestion = extractSuggestion(compl, input, results);
+            final String suggestion = extractSuggestion(compl, input, results);
             if (!suggestion.isEmpty())
                 results.put(suggestion, compl.bucket);
         }
@@ -79,7 +80,7 @@ public class Autocompleter {
         // FSTCompletion.Completion objects contains a utf8 representation of the suggestion
         // and an int field bucket. Higher bucket value means more likely.
         // The suggestion can be one or two words, we only want to return one.
-        String[] suggArr = compl.utf8.utf8ToString().split(" ");
+        final String[] suggArr = compl.utf8.utf8ToString().split(" ");
         // only one word in the suggestion
         if ((suggArr.length == 1) && !currentMap.containsKey(suggArr[0])) {
             suggestion = suggArr[0];
