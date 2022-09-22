@@ -87,7 +87,7 @@ public class Autocompleter {
         // two words in the suggestion, select the correct one, be sure the word is not already
         // in the map so that we do not override frequencies (bucket values)
         else if (suggArr.length == 2) {
-            if (suggArr[0].startsWith(input) && input.length() < suggArr[0].length()) {
+            if (suggArr[0].startsWith(input) && input.length() <= suggArr[0].length()) {
                 if (!currentMap.containsKey(suggArr[0]))
                     suggestion = suggArr[0];
             }
