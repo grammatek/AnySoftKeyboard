@@ -43,9 +43,10 @@ public class NextWordDictionaryICE extends NextWordDictionary {
     @NonNull
     public Iterable<String> getNextWords(
             @NonNull String currentWord, int maxResults, final int minWordUsage) {
+        // why shouldn't we use MAX_NEXT_SUGGESTIONS always?
         maxResults = Math.min(MAX_NEXT_SUGGESTIONS, maxResults);
 
-        Map<String, Integer> suggestions = mAutocompleter.autocomplete(currentWord + " ", maxResults);
+        Map<String, Integer> suggestions = mAutocompleter.autocomplete(currentWord + " ", MAX_NEXT_SUGGESTIONS);
         List<String> suggList = suggestions.keySet().stream().collect(Collectors.toList());
         NextWordsContainer nextSet = new NextWordsContainer(currentWord, suggList);
         int suggestionsCount = 0;
@@ -53,7 +54,7 @@ public class NextWordDictionaryICE extends NextWordDictionary {
             for (NextWord nextWord : nextSet.getNextWordSuggestions()) {
                 mReusableNextWordsResponse[suggestionsCount] = nextWord.nextWord;
                 suggestionsCount++;
-                if (suggestionsCount == maxResults) break;
+                if (suggestionsCount == MAX_NEXT_SUGGESTIONS) break;
             }
         }
         mReusableNextWordsIterable.setArraySize(suggestionsCount);

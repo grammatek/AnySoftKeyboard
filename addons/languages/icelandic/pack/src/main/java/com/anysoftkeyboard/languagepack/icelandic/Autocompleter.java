@@ -156,6 +156,8 @@ public class Autocompleter {
                     bucket = MAX_BUCKETS - 1;
                 mergedBigrams.put(arr[0], bucket);
                 userBigrams.remove(arr[0]);
+                Log.d(TAG, "========== Updating bigrams list: " + arr[0] + " from count " +
+                        usageCount + " to count " + bucket);
             }
             else
                 mergedBigrams.put(arr[0], bucket);
