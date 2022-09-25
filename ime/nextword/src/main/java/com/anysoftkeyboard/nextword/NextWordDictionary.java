@@ -111,7 +111,7 @@ public class NextWordDictionary implements NextWordSuggestions {
         mNextWordMap.clear();
     }
 
-    private static class SimpleIterable implements Iterable<String> {
+    protected static class SimpleIterable implements Iterable<String> {
         private final String[] mStrings;
         private int mLength;
 
