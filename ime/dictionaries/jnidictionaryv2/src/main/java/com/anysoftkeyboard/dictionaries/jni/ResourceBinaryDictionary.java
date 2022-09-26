@@ -29,12 +29,15 @@ import com.anysoftkeyboard.base.utils.Logger;
 import com.anysoftkeyboard.dictionaries.Dictionary;
 import com.anysoftkeyboard.dictionaries.GetWordsCallback;
 import com.anysoftkeyboard.dictionaries.KeyCodesProvider;
+import com.anysoftkeyboard.languagepack.icelandic.Autocompleter;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.Channels;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 /** Implements a static, compacted, binary dictionary of standard words. */
@@ -57,6 +60,9 @@ public class ResourceBinaryDictionary extends Dictionary {
     private final char[] mOutputChars = new char[MAX_WORD_LENGTH * MAX_WORDS];
     private final int[] mFrequencies = new int[MAX_WORDS];
 
+    // in case we manage to use previous word for Lucene
+    //private final Autocompleter mAutocompleter;
+
     /**
      * NOTE! Keep a reference to the native dict direct buffer in Java to avoid unexpected
      * de-allocation of the direct buffer.
@@ -77,6 +83,11 @@ public class ResourceBinaryDictionary extends Dictionary {
             @NonNull Context originPackageContext,
             @XmlRes int resId) {
         super(dictionaryName);
+        // if we manage to send previous word to suggester, then consider this method
+        //if (getDictionaryName().toString().equals("Icelandic"))
+        //    mAutocompleter = new Autocompleter();
+        //else
+        //    mAutocompleter = null;
         CompatUtils.loadNativeLibrary(originPackageContext, "anysoftkey2_jni", "1.0.3");
         mOriginPackageContext = originPackageContext;
         mDictResId = resId;
@@ -106,6 +117,9 @@ public class ResourceBinaryDictionary extends Dictionary {
 
     @Override
     protected void loadAllResources() {
+        // we shouldn't need to load dict resources if we are using Lucene suggestions
+        // but since suggestions are validated later using this dictionary,
+        // we need to initialize the default resource dictionary
         Resources pkgRes = mOriginPackageContext.getResources();
         final int[] resId;
         // is it an array of dictionaries? Or a ref to raw?
@@ -202,6 +216,11 @@ public class ResourceBinaryDictionary extends Dictionary {
     public void getSuggestions(
             final KeyCodesProvider codes,
             final WordCallback callback /*, int[] nextLettersFrequencies*/) {
+        // if we manage to get previous word for Lucene!
+      /*  if(getDictionaryName().toString().equals("Icelandic")) {
+            getSuggestionsForIcelandic(callback, codes.getTypedWord().toString());
+            return;
+        }*/
         if (isLoading() || isClosed()) return;
         final int codesSize = codes.codePointCount();
         // Won't deal with really long words.
@@ -278,6 +297,40 @@ public class ResourceBinaryDictionary extends Dictionary {
                                 mFrequencies[j] /*, mDicTypeId, DataType.UNIGRAM*/,
                                 this);
             }
+        }
+    }
+
+    private void getSuggestionsForIcelandic(WordCallback callback, String word) {
+        int count = 8;
+        Map<String, Integer> suggestions = mAutocompleter.autocomplete(word, count);
+
+        boolean requestContinue = true;
+        char[] outPutChars = new char[MAX_WORD_LENGTH * MAX_WORDS];
+        Arrays.fill(outPutChars, (char) 0);
+
+        int k = 0;
+        for (Map.Entry<String, Integer> entry : suggestions.entrySet()) {
+            if (entry.getValue() < 1 || !requestContinue) break;
+            int startIndex = k * MAX_WORD_LENGTH;
+            int index = k * MAX_WORD_LENGTH;
+            int len = entry.getKey().length();
+
+            for (char ch: entry.getKey().toCharArray()) {
+                outPutChars[index] = ch;
+                index++;
+            }
+            if (len > 0) {
+                Log.d(TAG, "word: " + entry.getKey() + " freq: " + entry.getValue());
+                requestContinue =
+                        callback.addWord(
+                                outPutChars,
+                                startIndex,
+                                len,
+                                entry.getValue(),
+                                this
+                        );
+            }
+            k++;
         }
     }
 

@@ -1,18 +1,14 @@
 package com.anysoftkeyboard.languagepack.icelandic;
 
-import android.content.Context;
-import android.content.res.Resources;
-import android.util.Log;
-
-import androidx.annotation.RawRes;
-
-import com.anysoftkeyboard.languagepack.icelandic.pack.R;
-
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.reflect.Field;
+import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 

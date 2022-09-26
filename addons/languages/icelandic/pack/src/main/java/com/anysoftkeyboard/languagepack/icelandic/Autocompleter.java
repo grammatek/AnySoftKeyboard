@@ -2,15 +2,23 @@ package com.anysoftkeyboard.languagepack.icelandic;
 
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
+import org.apache.lucene.search.suggest.InMemorySorter;
 import org.apache.lucene.search.suggest.fst.FSTCompletion;
 import org.apache.lucene.search.suggest.fst.FSTCompletionBuilder;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.fst.FST;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * An autocompleter based on Lucene FSTCompletion. On initialization the FST is created from
@@ -19,33 +27,24 @@ import java.util.Map;
 
 public class Autocompleter {
     final static String TAG = "ASK_ICE_Autocompleter";
-    final static List<Integer> BUCKETS = Arrays.asList(10, 50, 100, 500, 1000, 5000, 10000, 20000, 40000, 10000000);
+    final static String BIGRAM_FILE = "res/raw/bigrams_bucketed.tsv";
+    // Max number of buckets for the automaton. Should be plenty, normal range would be 10-20 buckets.
+    final static int MAX_BUCKETS = 100;
     FSTCompletion completion;
 
     /**
     Initilaize the Autocompleter by reading bigram data from resources and create an in-memory
     FSTCompletion object for later lookup.
      */
-    @SuppressWarnings("StringSplitter")
     public Autocompleter()  {
+        this(new HashMap<String, Integer>());
+    }
+
+    public Autocompleter(Map<String, Integer> userBigrams) {
         try {
             List<String> freqdictContent = readFile();
-            FSTCompletionBuilder FSTbuilder = new FSTCompletionBuilder();
-            for (String line : freqdictContent) {
-                String[] arr = line.split("\t");
-                BytesRef term = new BytesRef(arr[0]);
-                int freq = Integer.parseInt(arr[1]);
-                int bucket = 0;
-                for (int b : BUCKETS) {
-                    int ind = BUCKETS.indexOf(b);
-                    if (freq > b && freq < BUCKETS.get(ind + 1)) {
-                        bucket = ind;
-                        break;
-                    }
-                }
-                FSTbuilder.add(term, bucket);
-            }
-            completion = FSTbuilder.build();
+            Map<String, Integer> finalContent = mergeLists(freqdictContent, userBigrams);
+            completion = initCompletionFST(finalContent);
         } catch (IOException e) {
             Log.e(TAG, e.getMessage());
         }
@@ -74,6 +73,19 @@ public class Autocompleter {
         return results;
     }
 
+    public void addBigram(String bigram) {
+        // need another storage for the bigrams!
+        int bucket = completion.getBucket(bigram);
+        // bigram is in the automaton, but not in the highest bucket
+        if (bucket > 0 && bucket < completion.getBucketCount()) {
+            bucket++;
+        }
+        // bigram is not in the automaton, let's put it in the middle
+        else if (bucket <= 0){
+            bucket = completion.getBucketCount()/2;
+        }
+    }
+
     @SuppressWarnings("StringSplitter")
     private String extractSuggestion(FSTCompletion.Completion compl, String input, Map<String, Integer> currentMap) {
         String suggestion = "";
@@ -98,9 +110,68 @@ public class Autocompleter {
         return suggestion;
     }
 
+    private FSTCompletion initCompletionFST(Map<String, Integer> bucketDict) throws IOException {
+        FSTCompletionBuilder FSTbuilder = new FSTCompletionBuilder(
+                MAX_BUCKETS, new InMemorySorter(Comparator.naturalOrder()), Integer.MAX_VALUE);
+        for (String bigram : bucketDict.keySet()) {
+            try {
+                BytesRef term = new BytesRef(bigram);
+                Integer bucket = bucketDict.get(bigram);
+                bucket = bucket == null ? 1 : bucket;
+                FSTbuilder.add(term, bucket);
+            } catch (NumberFormatException e) {
+                Log.e(TAG, e.getMessage());
+            }
+        }
+        return FSTbuilder.build();
+    }
+
+    @SuppressWarnings("StringSplitter")
+    /*
+    Create a map from systemBigrams and, if userBigrams are not empty, merge the content of userBigrams
+    with the systemBigrams. To do that we increase the bucket value of each systemBigram also found
+    in userBigrams by the usageCount in the userBigrams map. At the same time, we remove each found
+    bigram from the userBigrams and in case they are not all found in the systemBigrams, we
+    add the remaining userBigrams at the end.
+    This method then returns a map of bigrams and their bucket values for the FST initialization.
+    If userBigrams is not empty this will be a mixture of user bigrams and system bigrams, otherwise
+    only system bigrams.
+     */
+    private Map<String, Integer> mergeLists(@NonNull List<String> systemBigrams, @NonNull Map<String, Integer> userBigrams) {
+        final Map<String, Integer> mergedBigrams = new HashMap<>();
+        // create a map from the systemBigrams list and at the same time
+        // compare and merge with the userBigrams map
+        for (String line : systemBigrams) {
+            String[] arr = line.split("\t");
+            if (arr.length != 2)
+                continue;
+            int bucket = Integer.parseInt(arr[1]);
+            if (!userBigrams.isEmpty() && userBigrams.containsKey(arr[0])) {
+                Integer usageCount = userBigrams.get(arr[0]);
+                usageCount = usageCount == null ? 0 : usageCount;
+                if (bucket + usageCount < MAX_BUCKETS) {
+                    bucket += usageCount;
+                }
+                else
+                    bucket = MAX_BUCKETS - 1;
+                mergedBigrams.put(arr[0], bucket);
+                userBigrams.remove(arr[0]);
+                Log.d(TAG, "========== Updating bigrams list: " + arr[0] + " from count " +
+                        usageCount + " to count " + bucket);
+            }
+            else
+                mergedBigrams.put(arr[0], bucket);
+        }
+        // not all userBigrams were found in the system bigrams list, add the remaining
+        // userBigrams
+        if (!userBigrams.isEmpty()) {
+            mergedBigrams.putAll(userBigrams);
+        }
+        return mergedBigrams;
+    }
+
     private List<String> readFile() {
         FileUtils fileUtils = new FileUtils();
-        final List<String> fileContent = fileUtils.readLinesFromResourceFile("res/raw/uni_bigrams.tsv");
-        return fileContent;
+        return fileUtils.readLinesFromResourceFile(BIGRAM_FILE);
     }
 }
